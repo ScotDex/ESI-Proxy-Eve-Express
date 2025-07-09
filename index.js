@@ -25,6 +25,57 @@ app.get('/auth/login', (req, res) => {
   res.redirect(authUrl);
 });
 
+app.get('/auth/callback', async (req, res) => {
+  const { code, state } = req.query;
+
+  if (!code) {
+    return res.status(400).send('Missing authorization code.');
+  }
+
+  try {
+    // Exchange code for token
+    const tokenResponse = await axios.post(
+      'https://login.eveonline.com/v2/oauth/token',
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: process.env.REDIRECT_URI
+      }),
+      {
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+
+    // Get character info
+    const verifyResponse = await axios.get('https://login.eveonline.com/oauth/verify', {
+      headers: {
+        Authorization: `Bearer ${access_token}`
+      }
+    });
+
+    const character = verifyResponse.data;
+
+    // For now, just show the data in the browser
+    res.json({
+      character_name: character.CharacterName,
+      character_id: character.CharacterID,
+      access_token,
+      refresh_token,
+      expires_in
+    });
+
+  } catch (error) {
+    console.error('OAuth callback failed:', error.response?.data || error.message);
+    res.status(500).send('Authentication failed');
+  }
+});
+
+
 app.get('/', (req, res) => {
   const name = process.env.NAME || 'World';
   res.send(`Hello ${name}!`);
