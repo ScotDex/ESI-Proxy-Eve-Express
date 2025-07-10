@@ -24,8 +24,6 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 dotenv.config();
 
-
-
 const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
 const client = new SecretManagerServiceClient();
 const app = express();
@@ -43,31 +41,46 @@ app.get('/auth/login', (req, res) => {
   res.redirect(authUrl);
 });
 
-async function createSecret() {
-  const secretConfig = {
-    replication: {
-      automatic: {},
-    },
-  };
 
-  // Add TTL to the secret configuration if provided
-  if (ttl) {
-    secretConfig.ttl = {
-      seconds: parseInt(ttl.replace('s', ''), 10),
-    };
-    console.log(`Secret TTL set to ${ttl}`);
+async function storeTokenInSecretManager(characterID, tokenData) {
+  const secretId = `eve-token-${characterID}`;
+  const parent = `projects/${process.env.GCP_PROJECT_ID}`;
+  const payload = JSON.stringify(tokenData);
+
+  try {
+    // Check if secret exists
+    const [secrets] = await client.listSecrets({ parent });
+    const exists = secrets.some(secret => secret.name.endsWith(`/secrets/${secretId}`));
+
+    let secretName;
+    if (!exists) {
+      const [secret] = await client.createSecret({
+        parent,
+        secretId,
+        secret: {
+          replication: { automatic: {} },
+        },
+      });
+      secretName = secret.name;
+      console.log(`✅ Created secret: ${secretName}`);
+    } else {
+      secretName = `${parent}/secrets/${secretId}`;
+      console.log(`ℹ️ Secret exists: ${secretName}`);
+    }
+
+    // Add a new secret version (i.e. update token)
+    const [version] = await client.addSecretVersion({
+      parent: secretName,
+      payload: {
+        data: Buffer.from(payload, 'utf8'),
+      },
+    });
+
+    console.log(`✅ Stored token for ${characterID} as version: ${version.name}`);
+  } catch (err) {
+    console.error(`❌ Failed to store token for ${characterID}: ${err.message}`);
   }
-
-  const [secret] = await client.createSecret({
-    parent: parent,
-    secretId: secretId,
-    secret: secretConfig,
-  });
-
-  console.log(`Created secret ${secret.name}`);
 }
-
-createSecret();
 
 
 app.get('/auth/callback', async (req, res) => {
@@ -104,6 +117,14 @@ app.get('/auth/callback', async (req, res) => {
     });
 
     const character = verifyResponse.data;
+
+  await storeTokenInSecretManager(character.CharacterID, {
+  access_token,
+  refresh_token,
+  expires_in,
+  timestamp: Date.now()
+});
+
 
     // For now, just show the data in the browser
     res.json({
