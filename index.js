@@ -24,7 +24,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 dotenv.config();
 
-const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 const client = new SecretManagerServiceClient();
 const app = express();
 
