@@ -1,20 +1,38 @@
+/**
+ * Express application for EVE Online SSO authentication.
+ * 
+ * Features:
+ * - /auth/login: Redirects user to EVE Online OAuth2 authorization endpoint.
+ * - /auth/callback: Handles OAuth2 callback, exchanges code for tokens, verifies character, and returns character info.
+ * 
+ * Environment Variables:
+ * @env {string} CLIENT_ID - EVE Online application client ID.
+ * @env {string} CLIENT_SECRET - EVE Online application client secret.
+ * @env {string} REDIRECT_URI - OAuth2 redirect URI.
+ * @env {string} [NAME] - Name to display on the root endpoint.
+ * @env {string|number} [PORT=8080] - Port for the server to listen on.
+ * 
+ * Dependencies:
+ * - express: Web framework.
+ * - axios: HTTP client for API requests.
+ * - dotenv: Loads environment variables.
+ * - crypto: Generates random state for OAuth2.
+ */
 import express from 'express';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 dotenv.config();
 
+
+
+const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
+const client = new SecretManagerServiceClient();
 const app = express();
 
 app.get('/auth/login', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
-
-  const scopes = [
-    'esi-wallet.read_character_wallet.v1',
-    'esi-location.read_location.v1',
-    'esi-skills.read_skills.v1'
-  ].join(' ');
-
+  const scopes = process.env.ESI_SCOPES;
   const authUrl = `https://login.eveonline.com/v2/oauth/authorize?` +
     `response_type=code&` +
     `client_id=${process.env.CLIENT_ID}&` +
@@ -24,6 +42,33 @@ app.get('/auth/login', (req, res) => {
 
   res.redirect(authUrl);
 });
+
+async function createSecret() {
+  const secretConfig = {
+    replication: {
+      automatic: {},
+    },
+  };
+
+  // Add TTL to the secret configuration if provided
+  if (ttl) {
+    secretConfig.ttl = {
+      seconds: parseInt(ttl.replace('s', ''), 10),
+    };
+    console.log(`Secret TTL set to ${ttl}`);
+  }
+
+  const [secret] = await client.createSecret({
+    parent: parent,
+    secretId: secretId,
+    secret: secretConfig,
+  });
+
+  console.log(`Created secret ${secret.name}`);
+}
+
+createSecret();
+
 
 app.get('/auth/callback', async (req, res) => {
   const { code, state } = req.query;
@@ -75,15 +120,9 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-
-app.get('/', (req, res) => {
-  const name = process.env.NAME || 'World';
-  res.send(`Hello ${name}!`);
-});
-
 const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {
-  console.log(`helloworld: listening on port ${port}`);
+  console.log(`Proxy listening on port ${port}`);
 });
 
 

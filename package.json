@@ -1,7 +1,7 @@
 {
-  "name": "helloworld",
-  "description": "Simple hello world sample in Node",
-  "version": "1.0.0",
+  "name": "esi-proxy",
+  "description": "Cloud Based ESI Proxy for EVE Online",
+  "version": "0.0.1",
   "private": true,
   "main": "index.js",
   "type": "module",
@@ -11,7 +11,7 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "author": "Google LLC",
+  "author": "ScottishDex",
   "license": "Apache-2.0",
   "dependencies": {
       "express": "^4.17.1",
