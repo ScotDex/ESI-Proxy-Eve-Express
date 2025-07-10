@@ -66,7 +66,7 @@ export async function getValidToken(characterID) {
       return refreshed.access_token;
     }
 
-    return payload.access_token;
+    return payload;
   } catch (err) {
     console.error(`Failed to retrieve or refresh token for ${characterID}: ${err.message}`);
     throw err;

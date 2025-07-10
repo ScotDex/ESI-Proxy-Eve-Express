@@ -128,7 +128,6 @@ app.listen(port, () => {
   });
 });
 
-console.log(`[DEBUG] Token used for ${characterID}:`, access_token.slice(0, 20), '...');
 
 // Periodically refresh all tokens
 setInterval(refreshAllTokens, 18 * 60 * 1000); // every 18 minutes
