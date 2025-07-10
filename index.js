@@ -30,7 +30,13 @@ const app = express();
 
 app.get('/auth/login', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
-  const scopes = process.env.ESI_SCOPES;
+  const scopes = [
+    'esi-wallet.read_character_wallet.v1',
+    'esi-location.read_location.v1',
+    'esi-skills.read_skills.v1'
+  ].join(' ');
+
+
   const authUrl = `https://login.eveonline.com/v2/oauth/authorize?` +
     `response_type=code&` +
     `client_id=${process.env.CLIENT_ID}&` +
