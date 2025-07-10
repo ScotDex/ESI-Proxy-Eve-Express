@@ -106,6 +106,8 @@ app.listen(port, () => {
   });
 });
 
+console.log('🚀 Build triggered: harmless log added.');
+
 // Periodically refresh all tokens
 setInterval(refreshAllTokens, 18 * 60 * 1000); // every 18 minutes
 
