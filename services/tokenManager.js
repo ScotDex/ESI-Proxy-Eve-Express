@@ -46,3 +46,53 @@ export async function storeToken(characterID, tokenData) {
     console.error(`❌ Failed to store token for ${characterID}: ${err.message}`);
   }
 }
+
+export async function getValidToken(characterID) {
+  const projectId = await getProjectId();
+  const secretName = `projects/${projectId}/secrets/eve-token-${characterID}/versions/latest`;
+
+  try {
+    const [version] = await client.accessSecretVersion({ name: secretName });
+    const payload = JSON.parse(version.payload.data.toString('utf8'));
+
+    const expiresAt = payload.timestamp + payload.expires_in * 1000;
+    const now = Date.now();
+
+    // Refresh if less than 2 minutes left
+    if (now >= expiresAt - 2 * 60 * 1000) {
+      console.log(`🔄 Token expired or near expiry. Refreshing for ${characterID}...`);
+      const refreshed = await refreshToken(payload.refresh_token);
+      await storeToken(characterID, refreshed);
+      return refreshed.access_token;
+    }
+
+    return payload.access_token;
+  } catch (err) {
+    console.error(`❌ Failed to retrieve or refresh token for ${characterID}: ${err.message}`);
+    throw err;
+  }
+}
+
+async function refreshToken(refresh_token) {
+  const res = await axios.post(
+    'https://login.eveonline.com/v2/oauth/token',
+    new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token,
+    }),
+    {
+      headers: {
+        'Authorization': 'Basic ' +
+          Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }
+  );
+
+  return {
+    access_token: res.data.access_token,
+    refresh_token: res.data.refresh_token,
+    expires_in: res.data.expires_in,
+    timestamp: Date.now()
+  };
+}
