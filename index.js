@@ -94,7 +94,7 @@ async function refreshAllTokens() {
       await getValidToken(characterID);
       console.log(`🔄 Refreshed token for character ${characterID}`);
     } catch (err) {
-      console.error(`❌ Error refreshing token for ${characterID}: ${err.message}`);
+      console.error(`Error refreshing token for ${characterID}: ${err.message}`);
     }
   }
 }

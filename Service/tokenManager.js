@@ -28,10 +28,10 @@ export async function storeToken(characterID, tokenData) {
         },
       });
       secretName = secret.name;
-      console.log(`✅ Created secret: ${secretName}`);
+      console.log(`Created secret: ${secretName}`);
     } else {
       secretName = `${parent}/secrets/${secretId}`;
-      console.log(`ℹ️ Secret exists: ${secretName}`);
+      console.log(`ℹ Secret exists: ${secretName}`);
     }
 
     const [version] = await client.addSecretVersion({
@@ -41,9 +41,9 @@ export async function storeToken(characterID, tokenData) {
       },
     });
 
-    console.log(`✅ Stored token for ${characterID} as version: ${version.name}`);
+    console.log(`Stored token for ${characterID} as version: ${version.name}`);
   } catch (err) {
-    console.error(`❌ Failed to store token for ${characterID}: ${err.message}`);
+    console.error(`Failed to store token for ${characterID}: ${err.message}`);
   }
 }
 
@@ -60,7 +60,7 @@ export async function getValidToken(characterID) {
 
     // Refresh if less than 2 minutes left
     if (now >= expiresAt - 2 * 60 * 1000) {
-      console.log(`🔄 Token expired or near expiry. Refreshing for ${characterID}...`);
+      console.log(`Token expired or near expiry. Refreshing for ${characterID}...`);
       const refreshed = await refreshToken(payload.refresh_token);
       await storeToken(characterID, refreshed);
       return refreshed.access_token;
@@ -68,7 +68,7 @@ export async function getValidToken(characterID) {
 
     return payload.access_token;
   } catch (err) {
-    console.error(`❌ Failed to retrieve or refresh token for ${characterID}: ${err.message}`);
+    console.error(`Failed to retrieve or refresh token for ${characterID}: ${err.message}`);
     throw err;
   }
 }
