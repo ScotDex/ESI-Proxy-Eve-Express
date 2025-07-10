@@ -77,6 +77,24 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
+app.get('/character/:id/info', async (req, res) => {
+  const characterID = req.params.id;
+  try {
+    const tokenData = await getValidToken(characterID);
+    const { access_token } = tokenData;
+
+    const response = await axios.get('https://esi.evetech.net/latest/characters/' + characterID + '/', {
+      headers: {
+        Authorization: `Bearer ${access_token}`
+      }
+    });
+
+    res.json(response.data);
+  } catch (err) {
+    console.error(`❌ Failed to fetch character info:`, err.message);
+    res.status(500).send('Failed to fetch character info.');
+  }
+});
 
 
 
