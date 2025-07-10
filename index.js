@@ -1,12 +1,13 @@
-
 import express from 'express';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { storeToken } from './services/tokenManager.js';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { storeToken, getProjectId, getValidToken } from './Service/tokenManager.js';
 dotenv.config();
-const app = express();
 
+const app = express();
+const secretClient = new SecretManagerServiceClient();
 
 app.get('/auth/login', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
@@ -63,12 +64,12 @@ app.get('/auth/callback', async (req, res) => {
 
     const character = verifyResponse.data;
 
-  await storeToken (character.CharacterID, {
-  access_token,
-  refresh_token,
-  expires_in,
-  timestamp: Date.now()
-});
+    await storeToken(character.CharacterID, {
+      access_token,
+      refresh_token,
+      expires_in,
+      timestamp: Date.now()
+    });
 
   } catch (error) {
     console.error('OAuth callback failed:', error.response?.data || error.message);
@@ -76,10 +77,37 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
+
+
+
+async function refreshAllTokens() {
+  const projectId = await getProjectId();
+  const [secrets] = await secretClient.listSecrets({
+    parent: `projects/${projectId}`,
+  });
+
+  for (const secret of secrets) {
+    if (!secret.name.includes('eve-token-')) continue;
+
+    const characterID = secret.name.split('/').pop().replace('eve-token-', '');
+    try {
+      await getValidToken(characterID);
+      console.log(`🔄 Refreshed token for character ${characterID}`);
+    } catch (err) {
+      console.error(`❌ Error refreshing token for ${characterID}: ${err.message}`);
+    }
+  }
+}
 const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {
   console.log(`Proxy listening on port ${port}`);
+  refreshAllTokens().then(() => {
+    console.log('✅ Initial token refresh completed.');
+  });
 });
+
+// Periodically refresh all tokens
+setInterval(refreshAllTokens, 18 * 60 * 1000); // every 18 minutes
 
 
 
