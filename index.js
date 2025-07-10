@@ -77,27 +77,29 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-app.get('/character/:id/info', async (req, res) => {
+app.get('/character/:id/wallet', async (req, res) => {
   const characterID = req.params.id;
+
   try {
     const tokenData = await getValidToken(characterID);
     const { access_token } = tokenData;
 
-    const response = await axios.get('https://esi.evetech.net/latest/characters/' + characterID + '/', {
+    const response = await axios.get(`https://esi.evetech.net/latest/characters/${characterID}/wallet/`, {
       headers: {
         Authorization: `Bearer ${access_token}`
       }
     });
 
-    res.json(response.data);
-  } catch (err) {
-    console.error('❌ Failed to fetch character info:', err.response?.data || err.message || err);
-    res.status(500).json({
-      error: 'Failed to fetch character info.',
-      details: err.response?.data || err.message || err
+    res.json({
+      character_id: characterID,
+      wallet_balance: response.data
     });
-}
+  } catch (err) {
+    console.error(`❌ Failed to fetch wallet balance for ${characterID}:`, err.message);
+    res.status(500).send('Failed to fetch wallet balance.');
+  }
 });
+
 
 
 async function refreshAllTokens() {
