@@ -1,6 +1,6 @@
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { GoogleAuth } from 'google-auth-library';
-
+import axios from 'axios';
 const client = new SecretManagerServiceClient();
 
 export async function getProjectId() {
