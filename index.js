@@ -22,9 +22,9 @@ import express from 'express';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-dotenv.config();
-
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { GoogleAuth } from 'google-auth-library';
+dotenv.config();
 const client = new SecretManagerServiceClient();
 const app = express();
 
@@ -47,10 +47,16 @@ app.get('/auth/login', (req, res) => {
   res.redirect(authUrl);
 });
 
+async function getProjectId() {
+  const auth = new GoogleAuth();
+  return await auth.getProjectId();
+}
+
 
 async function storeTokenInSecretManager(characterID, tokenData) {
+  const projectId = await getProjectId(); // ✅ Auto-detect
   const secretId = `eve-token-${characterID}`;
-  const parent = `projects/${process.env.GCP_PROJECT_ID}`;
+  const parent = `projects/${projectId}`;
   const payload = JSON.stringify(tokenData);
 
   try {
