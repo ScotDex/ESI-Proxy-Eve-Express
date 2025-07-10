@@ -91,11 +91,13 @@ app.get('/character/:id/info', async (req, res) => {
 
     res.json(response.data);
   } catch (err) {
-    console.error(`❌ Failed to fetch character info:`, err.message);
-    res.status(500).send('Failed to fetch character info.');
-  }
+    console.error('❌ Failed to fetch character info:', err.response?.data || err.message || err);
+    res.status(500).json({
+      error: 'Failed to fetch character info.',
+      details: err.response?.data || err.message || err
+    });
+}
 });
-
 
 
 async function refreshAllTokens() {
